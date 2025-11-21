@@ -20,8 +20,8 @@ int main() {
     
 
     int** sorted = bitonic_sort(unsorted);
-    for (int i = 0; i < sizeof(sorted)/sizeof(sorted[0]); i++) {
-        printf("The new sorted data: %d ", sorted[i]);
+    for (int i = 0; sorted[i] != NULL; i++) {
+        printf("The new sorted data: %d ", *sorted[i]);
     }
     
     
