@@ -2,14 +2,35 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <cuda_runtime.h>
-#define N 1024
+#define N 256
 
-__global__ void bitonic_sort_device(int *data, int size) {
-    // To do
+
+__global__ void bitonic_sort_device(int *d_data, int size) {
+    int index = threadIdx.x;
+
+    for(int group_size = 2; group_size <= size; group_size *=2){
+        for(int swap_distance = group_size/2; swap_distance > 0; swap_distance /=2){
+            
+            if (index < size){
+                int swap_index = index ^ swap_distance;
+
+                if (swap_index > index){
+                    int direction = (index / group_size) % 2 == 0;
+
+                    if (((d_data[index] > d_data[swap_index]) && direction ==1) || ((d_data[index] < d_data[swap_index]) && direction ==0)){    
+                        int temp = d_data[index];
+                        d_data[index] = d_data[swap_index];
+                        d_data[swap_index] = temp;
+                    }
+                }
+            }    
+        __syncthreads();
+        }
+    }
 }
 
 int load_data(int *unsorted) {
-    FILE *file = fopen("data.txt", "r");
+    FILE *file = fopen("data/data.txt", "r");
     if (file == NULL) {
         printf("Error opening file.\n");
         exit(1);
@@ -31,10 +52,8 @@ void bitonic_sort_host(int* unsorted, int* d_data, int* sorted, int size) {
 
     cudaMemcpy(d_data, unsorted, size * sizeof(int), cudaMemcpyHostToDevice);
     
-    int blocks = (size + 255) / 256;
-    int threads = 256;
 
-    bitonic_sort_device<<<blocks, threads>>>(d_data, size);
+    bitonic_sort_device<<<1, N>>>(d_data, size);
 
     cudaDeviceSynchronize();
 
@@ -48,7 +67,7 @@ int is_power_of_two(int n) {
 }
 
 int main() {
-    int *unsorted = (int*)malloc(100 * sizeof(int)), *sorted = (int*)malloc(100 * sizeof(int));
+    int *unsorted = (int*)malloc(256 * sizeof(int)), *sorted = (int*)malloc(256 * sizeof(int));
     int *d_data;
 
     int size = load_data(unsorted);
@@ -56,6 +75,7 @@ int main() {
     if (is_power_of_two(size) == 0) {
         printf("Array size must be a power of 2.\n");
         free(unsorted);
+        free(sorted);
         return -1;
     }
 
@@ -72,4 +92,5 @@ int main() {
 
     free(unsorted);
     free(sorted);
+    return 0;
 }

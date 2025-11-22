@@ -8,3 +8,8 @@ nvcc compiler (MSVC)
 cl (CUDA kit)
 
 This tiny piece of information took me 2 hours to learn and understand.
+
+
+The structure of the project:
+bitonicsort.c -> language c file with no CUDA parallelism
+bitonicsort.cu -> language cu file with CUDA parallelism

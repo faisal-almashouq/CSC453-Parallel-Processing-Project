@@ -5,7 +5,7 @@
 int load_data(int *data) {
     printf("Loading data\n");
 
-    FILE *file = fopen("data.txt", "r");
+    FILE *file = fopen("data/data.txt", "r");
     if (file == NULL) {
         printf("\nError opening file");
         exit(1);
