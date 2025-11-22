@@ -1,21 +1,46 @@
-// Copyright of Faisal Almashouq 444105697 - Non Parallel
+// Copyright of Faisal Almashouq 444105697 - not parallel via CUDA because of language limitation
 #include <stdio.h>
 #include <stdlib.h>
+#include <cuda_runtime.h>
+#define N 256
 
-int load_data(int *data) {
-    printf("Loading data\n");
 
+__global__ void bitonic_sort_device(int *d_data, int size) {
+    int index = threadIdx.x;
+
+    for(int group_size = 2; group_size <= size; group_size *=2){
+        for(int swap_distance = group_size/2; swap_distance > 0; swap_distance /=2){
+            
+            if (index < size){
+                int swap_index = index ^ swap_distance;
+
+                if (swap_index > index){
+                    int direction = (index / group_size) % 2 == 0;
+
+                    if (((d_data[index] > d_data[swap_index]) && direction ==1) || ((d_data[index] < d_data[swap_index]) && direction ==0)){    
+                        int temp = d_data[index];
+                        d_data[index] = d_data[swap_index];
+                        d_data[swap_index] = temp;
+                    }
+                }
+            }    
+        __syncthreads();
+        }
+    }
+}
+
+int load_data(int *unsorted) {
     FILE *file = fopen("data/data.txt", "r");
     if (file == NULL) {
-        printf("\nError opening file");
+        printf("Error opening file.\n");
         exit(1);
     }
 
     int i = 0, num;
     printf("Unsored Array:\n");
-    
+
     while((fscanf(file, "%d", &num) == 1) && (i < 100)) {
-        data[i++] = num;
+        unsorted[i++] = num;
         printf("%d ", num);
     }
 
@@ -23,37 +48,16 @@ int load_data(int *data) {
     return i;
 }
 
-void compare_and_swap(int* data, int i, int j, int direction) {
-    if((data[i] > data[j] && direction == 1) || (data[i] < data[j] && direction == -1)) {
-        int temp = data[i];
-        data[i] = data[j];
-        data[j] = temp;
-    }
-}
-void merge(int* data, int min, int size, int direction) {
-    if (size > 1) {
-        int k = size / 2;
-        for (int i = 0; i < k; i++) {
-            compare_and_swap(data, min + i, min + i + k, direction);
-        }
-        merge(data, min, k, direction);
-        merge(data, min + k, k, direction);
-    }
-}
-void bitonic_sort_recursive(int* data, int min, int size, int direction) {
-    if (size > 1) {
-        int k = size / 2;
-        bitonic_sort_recursive(data, min, k, 1);
-        bitonic_sort_recursive(data, min + k, k, -1);
-        merge(data, min, size, direction);
-    }
-}
+void bitonic_sort_host(int* unsorted, int* d_data, int* sorted, int size) {
 
-int* bitonic_sort(int* data, int size) {
-    printf("\nSorting data using Bitonic Merge Sort Algorithm");
-    bitonic_sort_recursive(data, 0, size, 1);
+    cudaMemcpy(d_data, unsorted, size * sizeof(int), cudaMemcpyHostToDevice);
+    
 
-    return data;
+    bitonic_sort_device<<<1, N>>>(d_data, size);
+
+    cudaDeviceSynchronize();
+
+    cudaMemcpy(sorted, d_data, size * sizeof(int), cudaMemcpyDeviceToHost);
 }
 
 int is_power_of_two(int n) {
@@ -61,21 +65,27 @@ int is_power_of_two(int n) {
 }
 
 int main() {
-    int* unsorted = malloc(100 * sizeof(int));
+    int *unsorted = (int*)malloc(256 * sizeof(int)), *sorted = (int*)malloc(256 * sizeof(int));
+    int *d_data;
+
     int size = load_data(unsorted);
 
     if (is_power_of_two(size) == 0) {
-        printf("\nArray length must be powers of 2");
+        printf("Array size must be a power of 2.\n");
         free(unsorted);
+        free(sorted);
         return -1;
     }
-    
 
-    int* sorted = bitonic_sort(unsorted, size);
+    cudaMalloc((void**)&d_data, size * sizeof(int));
 
-    printf("\nThe new sorted data:\n");
+    bitonic_sort_host(unsorted, d_data, sorted, size);
+
+    cudaFree(d_data);
+
+    printf("\nSorted Array:\n");
     for (int i = 0; i < size; i++) {
-         printf("%d " ,sorted[i]);
+        printf("%d ", sorted[i]);
     }
 
     free(unsorted);
