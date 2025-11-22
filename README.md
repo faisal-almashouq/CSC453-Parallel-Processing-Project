@@ -3,3 +3,8 @@ This is a project for my CSC453 Parallel Processing course. Acknowledgement: Tha
 You can read the journal for this project on this google docs link:
 https://docs.google.com/document/d/1yXXVxGknHjpkKU-PKfMZc-pyPwdt-9pch3542H3eBUU/edit?tab=t.0
 
+Note: To run .cu file, you must have the following:
+nvcc compiler (MSVC)
+cl (CUDA kit)
+
+This tiny piece of information took me 2 hours to learn and understand.
