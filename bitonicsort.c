@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 int load_data(int *data) {
-    printf("\nLoading data\n");
+    printf("Loading data\n");
 
     FILE *file = fopen("data.txt", "r");
     if (file == NULL) {
@@ -53,11 +53,16 @@ int* bitonic_sort(int* data, int size) {
 
     return data;
 }
+
+int is_power_of_two(int n) {
+    return (n > 0) && ((n & (n - 1)) == 0);
+}
+
 int main() {
     int* unsorted = malloc(100 * sizeof(int));
     int size = load_data(unsorted);
 
-    if (size % 2 != 0) {
+    if (is_power_of_two(size) == 0) {
         printf("\nArray length must be powers of 2");
         free(unsorted);
         return -1;
@@ -66,7 +71,7 @@ int main() {
 
     int* sorted = bitonic_sort(unsorted, size);
 
-    printf("The new sorted data:\n");
+    printf("\nThe new sorted data:\n");
     for (int i = 0; i < size; i++) {
          printf("%d " ,sorted[i]);
     }
